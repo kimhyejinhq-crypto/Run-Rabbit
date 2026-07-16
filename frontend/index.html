@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clown Racing - Multiplayer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Màn hình đăng nhập -->
+        <div id="login-screen" class="screen active">
+            <h1>🎪 Clown Racing</h1>
+            <div class="login-container">
+                <input type="text" id="player-name" placeholder="Tên của bạn" value="Player">
+                <div class="character-select">
+                    <label>Chọn nhân vật:</label>
+                    <div class="char-options">
+                        <div class="char-option" data-char="quang">🐧 Quang</div>
+                        <div class="char-option" data-char="trang">🐰 Trang</div>
+                        <div class="char-option" data-char="thanh">🦊 Thành</div>
+                        <div class="char-option" data-char="jin">🐱 Jin</div>
+                    </div>
+                </div>
+                <div class="room-actions">
+                    <button id="btn-create-room">Tạo phòng</button>
+                    <div style="display:flex; gap:10px; margin-top:10px;">
+                        <input type="text" id="room-id-input" placeholder="Mã phòng">
+                        <button id="btn-join-room">Tham gia</button>
+                    </div>
+                </div>
+                <div id="login-error" class="error-msg"></div>
+            </div>
+        </div>
+
+        <!-- Màn hình game -->
+        <div id="game-screen" class="screen">
+            <div id="header">
+                <div id="room-info">Phòng: <span id="room-id-display"></span></div>
+                <div id="turn-indicator">Đang chờ...</div>
+                <button id="btn-help">?</button>
+            </div>
+            <div id="game-area">
+                <div id="board-container">
+                    <div id="board"></div>
+                </div>
+                <div id="sidebar">
+                    <div id="players-info"></div>
+                    <div id="actions">
+                        <button id="btn-roll">🎲 Tung xúc xắc</button>
+                        <div id="shop-panel" style="display:none;">
+                            <h4>Cửa hàng</h4>
+                            <div id="shop-items"></div>
+                            <button id="btn-close-shop">Đóng</button>
+                        </div>
+                    </div>
+                    <div id="notifications"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal hướng dẫn -->
+        <div id="help-modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Hướng dẫn</h2>
+                <ul>
+                    <li><strong>Vàng:</strong> Ô Vàng => nhận vàng (1-5)</li>
+                    <li><strong>Đỏ:</strong> Mất 3 vàng hoặc lùi 2 ô</li>
+                    <li><strong>Xanh:</strong> Nhảy cóc đến ô ngẫu nhiên</li>
+                    <li><strong>Tím:</strong> Rút thẻ bẫy (hiệu ứng ngẫu nhiên)</li>
+                    <li><strong>Cam/Trắng:</strong> Cửa hàng (mua vật phẩm)</li>
+                    <li><strong>Hồng:</strong> Nhận 2 vàng</li>
+                    <li><strong>Đen:</strong> Mất lượt kế tiếp</li>
+                </ul>
+                <p>Mục tiêu: Về đích ô số 100 đầu tiên!</p>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
