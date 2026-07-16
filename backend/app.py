@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
-from flask_socketio import SocketIO, emit, join_room, leave_room, disconnect
+from flask_socketio import SocketIO, emit, join_room, leave_room
 import eventlet
-from .game_room import create_room, get_room, delete_room
 import uuid
+from .game_room import create_room, get_room, delete_room
 
 app = Flask(__name__, static_folder='../frontend')
 app.config['SECRET_KEY'] = 'secret!'
@@ -15,6 +15,7 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 sessions = {}
 
 # ------------------- Routes HTTP -------------------
+
 @app.route('/')
 def serve_index():
     return send_from_directory('../frontend', 'index.html')
@@ -66,10 +67,10 @@ def api_get_state(room_id):
     return jsonify(room.get_state())
 
 # ------------------- SocketIO Events -------------------
+
 @socketio.on('connect')
 def handle_connect():
     print('Client connected:', request.sid)
-    # Không tự động tham gia phòng, client sẽ gửi 'join'
 
 @socketio.on('join')
 def handle_join(data):
@@ -81,15 +82,12 @@ def handle_join(data):
     if not room:
         emit('error', {'message': 'Phòng không tồn tại'})
         return
-    # Kiểm tra player_id có trong phòng không
     if player_id not in room.engine.players:
         emit('error', {'message': 'Người chơi không tồn tại trong phòng'})
         return
     join_room(room_id)
     sessions[request.sid] = {'room_id': room_id, 'player_id': player_id}
-    # Gửi trạng thái hiện tại cho người vừa join
     emit('state_update', room.get_state(), room=room_id)
-    # Thông báo cho mọi người
     player_name = room.engine.players[player_id].name
     emit('notification', {'message': f'{player_name} đã tham gia!', 'category': 'info'}, room=room_id)
 
@@ -100,21 +98,17 @@ def handle_disconnect():
         room_id = sessions[sid]['room_id']
         player_id = sessions[sid]['player_id']
         leave_room(room_id)
-        # Xóa người chơi khỏi phòng (có thể giữ lại hoặc xóa)
-        # Ở đây ta xóa người chơi, nếu phòng trống thì xóa phòng
         room = get_room(room_id)
         if room:
             if player_id in room.engine.players:
                 del room.engine.players[player_id]
-                # Cập nhật turn_order
-                room.engine.turn_order = [pid for pid in room.engine.turn_order if pid in room.engine.players]
-                if not room.engine.players:
-                    delete_room(room_id)
-                else:
-                    # Nếu người chơi hiện tại bị xóa, chuyển lượt
-                    if room.engine.current_turn_index >= len(room.engine.turn_order):
-                        room.engine.current_turn_index = 0
-                    emit('state_update', room.get_state(), room=room_id)
+            room.engine.turn_order = [pid for pid in room.engine.turn_order if pid in room.engine.players]
+            if not room.engine.players:
+                delete_room(room_id)
+            else:
+                if room.engine.current_turn_index >= len(room.engine.turn_order):
+                    room.engine.current_turn_index = 0
+                emit('state_update', room.get_state(), room=room_id)
         del sessions[sid]
 
 @socketio.on('roll_dice')
@@ -127,15 +121,12 @@ def handle_roll_dice(data):
     room = get_room(room_id)
     if not room:
         return
-    # Kiểm tra lượt
     current = room.engine.get_current_player()
     if not current or current.id != player_id:
         emit('error', {'message': 'Chưa đến lượt bạn!'}, room=sid)
         return
-    # Roll dice
     result = room.engine.roll_dice(player_id)
     if result:
-        # Gửi trạng thái mới cho tất cả trong phòng
         emit('state_update', room.get_state(), room=room_id)
     else:
         emit('error', {'message': 'Không thể tung xúc xắc!'}, room=sid)
