@@ -14,7 +14,6 @@ const rollBtn = document.getElementById('roll-btn');
 const diceResult = document.getElementById('dice-result');
 const playerCountSpan = document.getElementById('player-count');
 
-// Chọn nhân vật
 chars.forEach(char => {
     char.addEventListener('click', function() {
         chars.forEach(c => c.classList.remove('selected'));
@@ -24,16 +23,14 @@ chars.forEach(char => {
     });
 });
 
-// Vào phòng
 joinBtn.addEventListener('click', function() {
     if (!selectedChar) {
-        showError('Vui lòng chọn nhân vật!');
+        showError('Chọn nhân vật!');
         return;
     }
     socket.emit('set_name', { name: selectedChar });
     loginSection.style.display = 'none';
     gameSection.style.display = 'block';
-    // Tạo bàn cờ 30 ô
     board.innerHTML = '';
     for (let i = 0; i < 30; i++) {
         const cell = document.createElement('div');
@@ -44,10 +41,9 @@ joinBtn.addEventListener('click', function() {
     }
 });
 
-// Socket events
 socket.on('connect', () => {
     myId = socket.id;
-    console.log('✅ Kết nối thành công');
+    console.log('✅ Kết nối');
 });
 
 socket.on('room_joined', (data) => {
@@ -75,20 +71,18 @@ socket.on('dice_rolled', (data) => {
     updateBoard(playersData);
     diceResult.innerHTML = `🎲 ${data.name} tung được <strong>${data.dice}</strong>`;
     if (data.winner) {
-        setTimeout(() => alert(`🏆 ${data.name} đã về đích!`), 300);
+        setTimeout(() => alert(`🏆 ${data.name} về đích!`), 300);
     }
 });
 
 socket.on('game_over', (data) => {
-    alert(`🏆 ${data.winner} đã chiến thắng!`);
+    alert(`🏆 ${data.winner} chiến thắng!`);
 });
 
-// Tung xúc xắc
 rollBtn.addEventListener('click', function() {
     socket.emit('roll_dice');
 });
 
-// Helpers
 function showError(msg) {
     errorMsg.textContent = msg;
 }
@@ -111,7 +105,6 @@ function updateBoard(players) {
                 cell.classList.add('has-player');
                 const icon = document.createElement('span');
                 icon.className = 'player-icon';
-                // Ánh xạ nhân vật với emoji
                 if (p.name === 'Thỏ') icon.textContent = '🐇';
                 else if (p.name === 'Chim cánh cụt') icon.textContent = '🐧';
                 else if (p.name === 'Cáo') icon.textContent = '🦊';
@@ -121,4 +114,4 @@ function updateBoard(players) {
             }
         }
     });
-}[reference:2]
+}
