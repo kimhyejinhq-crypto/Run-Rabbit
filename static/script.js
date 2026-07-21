@@ -2,6 +2,7 @@
 // scripts.js - Hành Tinh Xiếc (Client)
 // =====================================================================
 
+
 // ===== STATE =====
 let socket = null;
 let roomCode = '';
