@@ -1,17 +1,39 @@
 // =====================================================================
-// scripts.js - Hành Tinh Xiếc (Client)
+// scripts.js - Hành Tinh Xiếc (OFFLINE - không cần server)
 // =====================================================================
 
-
 // ===== STATE =====
-let socket = null;
-let roomCode = '';
-let playerId = null;
-let state = null;
+let state = {
+    players: [],
+    board: [],
+    current_player_index: 0,
+    turn_count: 0,
+    game_over: false,
+    winner_id: null,
+    log: [],
+    pending_shop_tile: false,
+    item_stock: {
+        'XUC_XAC_X2': 3,
+        'LA_CHAN': 3,
+        'DAO_GAM': 2,
+        'BUA_HO_MENH': 2,
+        'KINH_AP_TRONG': 3
+    },
+    item_info: {
+        'XUC_XAC_X2': { name: 'Xúc Xắc X2', emoji: '🎲', price: 7, desc: 'Tung 2 lần, lấy kết quả cao hơn' },
+        'LA_CHAN': { name: 'Lá Chắn', emoji: '🛡️', price: 5, desc: 'Chặn 1 hiệu ứng xấu' },
+        'DAO_GAM': { name: 'Dao Găm', emoji: '🔪', price: 8, desc: 'Đá lùi 4 ô người trong bán kính 3 ô' },
+        'BUA_HO_MENH': { name: 'Bùa Hộ Mệnh', emoji: '🪆', price: 10, desc: 'Được tung thêm 1 lượt' },
+        'KINH_AP_TRONG': { name: 'Kính Áp Tròng', emoji: '👁️', price: 6, desc: 'Điều chỉnh +1/-1 điểm xúc xắc' }
+    }
+};
+
 let myPlayer = null;
-let isMyTurn = false;
+let isMyTurn = true;
+let roomCode = '';
 let selectedCharacter = 'tho';
 let isGameStarted = false;
+let diceResult = 0;
 
 // ===== DOM REFS =====
 const $ = id => document.getElementById(id);
@@ -24,112 +46,114 @@ document.querySelectorAll('.char-option').forEach(el => {
         selectedCharacter = el.dataset.char;
     });
 });
-// Mặc định chọn Thỏ
 document.querySelector('.char-option[data-char="tho"]')?.classList.add('selected');
 
 // ===== ROOM CODE =====
 $('btn-random-code').addEventListener('click', () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let code = '';
-    for (let i = 0; i < 6; i++) {
-        code += chars[Math.floor(Math.random() * chars.length)];
-    }
+    for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
     $('room-code').value = code;
 });
 
-// ===== SOCKET =====
-function connectSocket() {
-    socket = io();
-    
-    socket.on('connect', () => {
-        console.log('🟢 Đã kết nối server');
-    });
-    
-    socket.on('disconnect', () => {
-        console.log('🔴 Mất kết nối');
-        showPopup('Mất kết nối', 'Đã ngắt kết nối với server. Vui lòng tải lại trang.');
-    });
-    
-    socket.on('error', (data) => {
-        showPopup('Lỗi', data.message || 'Có lỗi xảy ra');
-    });
-    
-    socket.on('game_created', (data) => {
-        roomCode = data.room_code;
-        playerId = data.player_id;
-        state = data.state;
-        myPlayer = state.players.find(p => p.id === playerId);
-        enterWaitingRoom();
-    });
-    
-    socket.on('game_joined', (data) => {
-        playerId = data.player_id;
-        state = data.state;
-        myPlayer = state.players.find(p => p.id === playerId);
-        enterWaitingRoom();
-    });
-    
-    socket.on('player_joined', (data) => {
-        state = data.state;
-        renderWaitingPlayers();
-        showPopup('🚀 Có người mới!', `${data.player.name} đã tham gia!`);
-    });
-    
-    socket.on('game_started', (data) => {
-        state = data.state;
-        isGameStarted = true;
-        enterGame();
-        showPopup('🚀 Bắt đầu!', 'Cuộc phiêu lưu vũ trụ bắt đầu!');
-    });
-    
-    socket.on('state_update', (data) => {
-        state = data.state;
-        if (isGameStarted) {
-            renderGame();
-        } else {
-            renderWaitingPlayers();
-        }
-    });
-    
-    socket.on('dice_result', (data) => {
-        animateDice(data.dice);
-        if (data.finished) {
-            showPopup('🏆 Về đích!', `Bạn đã về đích và chiến thắng!`);
-        }
-    });
+// ===== CREATE BOARD =====
+function createBoard() {
+    const board = [];
+    for (let i = 1; i <= 100; i++) {
+        let type = 'TRONG';
+        if (i === 100) type = 'DICH';
+        else if ([20, 50, 80].includes(i)) type = 'VANG';
+        else if ([5, 15, 25, 35, 45, 55, 65, 75, 85, 95].includes(i)) type = 'DO';
+        else if ([10, 30, 40, 60, 70, 90].includes(i)) type = 'XANH';
+        else if ([7, 17, 27, 37, 47, 57, 67, 77, 87, 97].includes(i)) type = 'TIM';
+        else if ([12, 22, 32, 42, 52, 62, 72, 82, 92].includes(i)) type = 'CAM';
+        else if ([8, 18, 28, 38, 48, 58, 68, 78, 88, 98].includes(i)) type = 'HONG';
+        board.push({ index: i, type });
+    }
+    return board;
 }
 
 // ===== LOBBY =====
 $('btn-create-room').addEventListener('click', () => {
     const name = $('player-name').value.trim() || 'Phi hành gia';
-    const code = $('room-code').value.trim().toUpperCase() || undefined;
+    const code = $('room-code').value.trim().toUpperCase() || generateRoomCode();
+    roomCode = code;
     
-    if (!socket) connectSocket();
-    
-    socket.emit('create_game', {
-        player_name: name,
+    // Tạo người chơi
+    const colors = ['Đỏ', 'Xanh', 'Vàng', 'Tím'];
+    const emojis = { 'tho': '🐰', 'chim': '🐧', 'cao': '🦊', 'qua': '🐦‍⬛' };
+    myPlayer = {
+        id: 'p1',
+        name,
+        color: colors[0],
         character: selectedCharacter,
-        room_code: code
-    });
+        position: 1,
+        gold: 10,
+        debt: 0,
+        items: [],
+        statuses: [],
+        finished: false,
+        offline: false
+    };
+    
+    state.players = [myPlayer];
+    state.board = createBoard();
+    state.log = ['🚀 Phòng đã được tạo!'];
+    state.current_player_index = 0;
+    state.turn_count = 0;
+    state.game_over = false;
+    state.winner_id = null;
+    state.pending_shop_tile = false;
+    state.item_stock = {
+        'XUC_XAC_X2': 3,
+        'LA_CHAN': 3,
+        'DAO_GAM': 2,
+        'BUA_HO_MENH': 2,
+        'KINH_AP_TRONG': 3
+    };
+    
+    enterWaitingRoom();
 });
 
 $('btn-join-room').addEventListener('click', () => {
     const name = $('player-name').value.trim() || 'Phi hành gia';
     const code = $('room-code').value.trim().toUpperCase();
-    
     if (!code) {
         $('lobby-error').textContent = 'Vui lòng nhập mã phòng!';
         return;
     }
-    
-    if (!socket) connectSocket();
-    
-    socket.emit('join_game', {
-        player_name: name,
+    // Trong offline, tự tạo phòng mới nếu chưa có
+    roomCode = code;
+    const colors = ['Đỏ', 'Xanh', 'Vàng', 'Tím'];
+    myPlayer = {
+        id: 'p1',
+        name,
+        color: colors[0],
         character: selectedCharacter,
-        room_code: code
-    });
+        position: 1,
+        gold: 10,
+        debt: 0,
+        items: [],
+        statuses: [],
+        finished: false,
+        offline: false
+    };
+    state.players = [myPlayer];
+    state.board = createBoard();
+    state.log = ['🚀 Tham gia phòng thành công!'];
+    state.current_player_index = 0;
+    state.turn_count = 0;
+    state.game_over = false;
+    state.pending_shop_tile = false;
+    enterWaitingRoom();
 });
+
+function generateRoomCode() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    return code;
+}
 
 // ===== WAITING ROOM =====
 function enterWaitingRoom() {
@@ -137,6 +161,7 @@ function enterWaitingRoom() {
     $('screen-waiting').classList.remove('hidden');
     $('waiting-room-code').textContent = roomCode;
     renderWaitingPlayers();
+    $('btn-start-game').style.display = 'block';
 }
 
 function renderWaitingPlayers() {
@@ -148,86 +173,64 @@ function renderWaitingPlayers() {
         div.innerHTML = `
             <span class="emoji">${getCharacterEmoji(p.character)}</span>
             <span class="name">${p.name}</span>
-            <span class="status ${p.id === playerId ? 'ready' : ''}">
-                ${p.id === playerId ? '⭐ Bạn' : '🟢 Sẵn sàng'}
-            </span>
+            <span class="status ready">⭐ Bạn</span>
         `;
         list.appendChild(div);
     });
-    
-    // Hiển thị nút bắt đầu nếu là chủ phòng
-    const isOwner = state.players.length > 0 && state.players[0].id === playerId;
-    $('btn-start-game').style.display = isOwner && state.players.length >= 2 ? 'block' : 'none';
 }
 
 $('btn-start-game').addEventListener('click', () => {
-    if (!socket) return;
-    socket.emit('start_game', {
-        room_code: roomCode,
-        player_id: playerId
-    });
+    startGame();
 });
 
 $('btn-leave').addEventListener('click', () => {
     window.location.reload();
 });
 
-// ===== GAME =====
-function enterGame() {
+// ===== START GAME =====
+function startGame() {
+    isGameStarted = true;
     $('screen-waiting').classList.add('hidden');
     $('screen-game').classList.remove('hidden');
+    state.log.push('🚀 Trò chơi bắt đầu!');
     renderGame();
 }
 
+// ===== RENDER GAME =====
 function renderGame() {
-    if (!state) return;
+    if (!state || state.players.length === 0) return;
     
     // Cập nhật topbar
-    myPlayer = state.players.find(p => p.id === playerId);
-    $('stat-gold').textContent = myPlayer ? myPlayer.gold : 0;
-    $('stat-turn').textContent = state.turn_count;
-    
-    // Timer
-    if (state.started_at) {
-        const elapsed = Date.now() / 1000 - state.started_at;
-        const remain = Math.max(0, state.time_limit_seconds - elapsed);
-        const m = String(Math.floor(remain / 60)).padStart(2, '0');
-        const s = String(Math.floor(remain % 60)).padStart(2, '0');
-        $('stat-timer').textContent = `${m}:${s}`;
+    myPlayer = state.players.find(p => p.id === 'p1');
+    if (myPlayer) {
+        $('stat-gold').textContent = myPlayer.gold;
+        $('stat-turn').textContent = state.turn_count;
     }
+    $('stat-timer').textContent = '45:00';
     
     // Turn indicator
     const current = state.players[state.current_player_index];
     if (current) {
-        const isMe = current.id === playerId;
+        const isMe = current.id === 'p1';
         $('turn-indicator').textContent = isMe ? '🎯 Lượt của bạn!' : `⏳ Đợi ${current.name}...`;
         $('turn-indicator').style.color = isMe ? '#4ECDC4' : 'var(--text-secondary)';
         isMyTurn = isMe && !state.game_over;
     }
     
-    // Board
+    // Board, players, log, dice
     renderBoard();
-    
-    // Players
     renderPlayers();
-    
-    // Log
     renderLog();
-    
-    // Dice
     renderDiceState();
-    
-    // Modals
     renderShopModal();
-    renderPendingModal();
     renderEndModal();
 }
 
+// ===== RENDER BOARD =====
 function renderBoard() {
     const board = $('board');
     board.innerHTML = '';
     
-    // Layout snake: 10x10, bắt đầu từ 100 xuống 1
     const grid = [];
     for (let row = 9; row >= 0; row--) {
         const start = row * 10 + 1;
@@ -247,10 +250,6 @@ function renderBoard() {
         }
     });
     
-    const characterEmojis = {
-        'tho': '🐰', 'chim': '🐧', 'cao': '🦊', 'qua': '🐦‍⬛'
-    };
-    
     grid.forEach(num => {
         const tile = tilesByIndex[num];
         if (!tile) return;
@@ -263,7 +262,6 @@ function renderBoard() {
         number.textContent = num;
         div.appendChild(number);
         
-        // Tokens (người chơi)
         const tokWrap = document.createElement('div');
         tokWrap.className = 'tile-tokens';
         const playersHere = playersByPos[num] || [];
@@ -271,12 +269,11 @@ function renderBoard() {
             const tok = document.createElement('span');
             tok.className = 'tok';
             tok.title = p.name;
-            tok.textContent = characterEmojis[p.character] || '🤡';
+            tok.textContent = getCharacterEmoji(p.character);
             tokWrap.appendChild(tok);
         });
         div.appendChild(tokWrap);
         
-        // Highlight ô của người chơi hiện tại
         if (myPlayer && myPlayer.position === num) {
             div.classList.add('has-player');
         }
@@ -284,36 +281,30 @@ function renderBoard() {
         board.appendChild(div);
     });
     
-    // Camera follow: di chuyển board để focus vào người chơi
+    // Camera follow
     if (myPlayer) {
         const viewport = $('board-viewport');
-        const tileSize = board.querySelector('.tile')?.offsetWidth || 40;
         const pos = myPlayer.position;
         const row = Math.floor((pos - 1) / 10);
         const col = (pos - 1) % 10;
         const isEvenRow = row % 2 === 0;
         const actualCol = isEvenRow ? col : 9 - col;
         
-        const boardWidth = board.offsetWidth || 600;
-        const boardHeight = board.offsetHeight || 400;
-        const cols = 10;
-        const rows = 10;
-        const tileW = boardWidth / cols;
-        const tileH = boardHeight / rows;
-        
-        const targetX = -(actualCol * tileW - viewport.offsetWidth / 2 + tileW / 2);
-        const targetY = -((9 - row) * tileH - viewport.offsetHeight / 2 + tileH / 2);
-        
+        const tileSize = 50;
+        const targetX = -(actualCol * tileSize - viewport.offsetWidth / 2 + tileSize / 2);
+        const targetY = -((9 - row) * tileSize - viewport.offsetHeight / 2 + tileSize / 2);
+        const boardWidth = 10 * tileSize;
+        const boardHeight = 10 * tileSize;
         board.style.transform = `translate(${Math.min(0, Math.max(-boardWidth + viewport.offsetWidth, targetX))}px, ${Math.min(0, Math.max(-boardHeight + viewport.offsetHeight, targetY))}px)`;
     }
 }
 
+// ===== RENDER PLAYERS =====
 function renderPlayers() {
     const panel = $('players-panel');
     panel.innerHTML = '<h3>🎭 Phi hành gia</h3>';
     
     const colorMap = { 'Đỏ': '#FF6B6B', 'Xanh': '#4ECDC4', 'Vàng': '#FFD93D', 'Tím': '#6C5CE7' };
-    const characterEmojis = { 'tho': '🐰', 'chim': '🐧', 'cao': '🦊', 'qua': '🐦‍⬛' };
     
     state.players.forEach(p => {
         const card = document.createElement('div');
@@ -332,21 +323,19 @@ function renderPlayers() {
         card.innerHTML = `
             <div class="p-name">
                 <span class="player-dot" style="background:${colorMap[p.color] || '#888'}"></span>
-                ${characterEmojis[p.character] || '🤡'} ${p.name} ${p.finished ? '🏆' : ''} ${p.offline ? '📴' : ''}
+                ${getCharacterEmoji(p.character)} ${p.name} ${p.finished ? '🏆' : ''} ${p.offline ? '📴' : ''}
             </div>
             <div class="p-row"><span>📍 Ô</span><span>${p.position}</span></div>
             <div class="p-row"><span>🪙 Vàng</span><span>${p.gold}${p.debt > 0 ? ` (nợ ${p.debt})` : ''}</span></div>
             <div class="p-row"><span>📦 Vật phẩm</span><span>${itemText}</span></div>
         `;
         
-        // Nút sử dụng vật phẩm
-        if (p.id === playerId && isMyTurn && !state.game_over && p.items.length > 0) {
+        if (p.id === 'p1' && isMyTurn && !state.game_over && p.items.length > 0) {
             const useWrap = document.createElement('div');
             useWrap.style.marginTop = '0.3rem';
             useWrap.style.display = 'flex';
             useWrap.style.gap = '0.3rem';
             useWrap.style.flexWrap = 'wrap';
-            
             p.items.forEach(itemType => {
                 const info = state.item_info[itemType];
                 if (!info) return;
@@ -365,6 +354,7 @@ function renderPlayers() {
     });
 }
 
+// ===== RENDER LOG =====
 function renderLog() {
     const list = $('log-list');
     list.innerHTML = '';
@@ -378,14 +368,14 @@ function renderLog() {
     });
 }
 
+// ===== DICE =====
 function renderDiceState() {
     const btn = $('btn-roll');
     const luckyPicker = $('lucky-picker');
-    
-    const isBlocked = state.game_over || state.pending_action || state.pending_shop_tile || !isMyTurn;
+    const isBlocked = state.game_over || state.pending_shop_tile || !isMyTurn;
     btn.disabled = isBlocked;
     
-    // Kiểm tra Bùa May Mắn
+    // Kiểm tra Bùa Hộ Mệnh
     if (myPlayer) {
         const luckyStatus = (myPlayer.statuses || []).find(s => s.kind === 'lucky_charm');
         if (luckyStatus && !isBlocked) {
@@ -398,6 +388,27 @@ function renderDiceState() {
     }
 }
 
+$('btn-roll').addEventListener('click', () => {
+    if (!myPlayer || state.game_over || state.pending_shop_tile) return;
+    const result = rollDice();
+    diceResult = result;
+    animateDice(result);
+    movePlayer(myPlayer, result);
+});
+
+document.querySelectorAll('.lucky-numbers button').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const result = Number(btn.dataset.n);
+        diceResult = result;
+        animateDice(result);
+        movePlayer(myPlayer, result);
+    });
+});
+
+function rollDice() {
+    return Math.floor(Math.random() * 6) + 1;
+}
+
 function animateDice(value) {
     const face = $('dice-face');
     const val = $('dice-value');
@@ -406,71 +417,177 @@ function animateDice(value) {
     setTimeout(() => face.classList.remove('rolling'), 600);
 }
 
-// ===== DICE =====
-$('btn-roll').addEventListener('click', () => {
-    if (!socket || !roomCode || !playerId) return;
-    socket.emit('roll_dice', {
-        room_code: roomCode,
-        player_id: playerId
-    });
-});
+// ===== MOVE PLAYER =====
+function movePlayer(player, steps) {
+    if (state.game_over) return;
+    const newPos = player.position + steps;
+    if (newPos >= 100) {
+        player.position = 100;
+        player.finished = true;
+        state.log.push(`🏁 ${player.name} đã về đích!`);
+        state.game_over = true;
+        state.winner_id = player.id;
+        state.log.push(`🏆 ${player.name} chiến thắng!`);
+        renderGame();
+        return;
+    }
+    player.position = newPos;
+    applyTileEffect(player);
+    if (!state.game_over && !state.pending_shop_tile) {
+        nextTurn();
+    }
+    renderGame();
+}
 
-document.querySelectorAll('.lucky-numbers button').forEach(btn => {
-    btn.addEventListener('click', () => {
-        if (!socket || !roomCode || !playerId) return;
-        socket.emit('roll_dice', {
-            room_code: roomCode,
-            player_id: playerId,
-            chosen_number: Number(btn.dataset.n)
-        });
-    });
-});
+// ===== APPLY TILE EFFECT =====
+function applyTileEffect(player) {
+    const tile = state.board[player.position - 1];
+    switch (tile.type) {
+        case 'VANG':
+            player.gold += 5;
+            state.log.push(`💰 ${player.name} nhận 5 vàng từ ô Vàng`);
+            break;
+        case 'DO':
+            if (player.gold >= 3) {
+                player.gold -= 3;
+                state.log.push(`💔 ${player.name} mất 3 vàng`);
+            } else {
+                player.position = Math.max(1, player.position - 3);
+                state.log.push(`⬅️ ${player.name} lùi 3 ô`);
+            }
+            break;
+        case 'XANH':
+            const target = Math.floor(Math.random() * 100) + 1;
+            player.position = target;
+            state.log.push(`🌀 ${player.name} nhảy đến ô ${target}`);
+            break;
+        case 'TIM':
+            player.gold += 5;
+            state.log.push(`🌟 ${player.name} nhận 5 vàng từ Sự kiện`);
+            break;
+        case 'CAM':
+            player.gold = Math.max(0, player.gold - 3);
+            state.log.push(`💥 ${player.name} mất 3 vàng từ Bẫy`);
+            break;
+        case 'HONG':
+            player.gold = Math.max(0, player.gold - 2);
+            state.log.push(`🚪 ${player.name} trả 2 vàng`);
+            break;
+        case 'TRONG':
+            for (let other of state.players) {
+                if (other.id !== player.id && other.position === player.position && !other.finished) {
+                    if (other.gold > 0) {
+                        other.gold -= 1;
+                        player.gold += 1;
+                        state.log.push(`🔪 ${player.name} cướp 1 vàng từ ${other.name}`);
+                        break;
+                    }
+                }
+            }
+            break;
+        case 'DICH':
+            state.log.push(`🏁 ${player.name} đã về đích!`);
+            player.finished = true;
+            state.game_over = true;
+            state.winner_id = player.id;
+            state.log.push(`🏆 ${player.name} chiến thắng!`);
+            break;
+    }
+    
+    // Kiểm tra nếu đang ở ô Vàng (20,50,80) thì mở cửa hàng
+    if ([20, 50, 80].includes(player.position) && !state.game_over) {
+        state.pending_shop_tile = true;
+    }
+}
 
-// ===== ITEMS =====
-async function handleUseItem(itemType) {
-    if (!socket || !roomCode || !playerId) return;
-    
-    const info = state.item_info[itemType];
-    if (!info) return;
-    
-    // Dao Găm cần chọn mục tiêu
-    if (itemType === 'DAO_GAM') {
-        const targets = state.players.filter(p => p.id !== playerId && !p.finished && !p.offline);
-        if (targets.length === 0) {
-            showPopup('Không có mục tiêu', 'Không có người chơi nào để làm mục tiêu!');
-            return;
+// ===== NEXT TURN =====
+function nextTurn() {
+    if (state.game_over) return;
+    state.current_player_index = (state.current_player_index + 1) % state.players.length;
+    state.turn_count++;
+    // Nếu người chơi đã finish hoặc offline thì bỏ qua
+    let attempts = 0;
+    while (state.players[state.current_player_index].finished || state.players[state.current_player_index].offline) {
+        state.current_player_index = (state.current_player_index + 1) % state.players.length;
+        attempts++;
+        if (attempts > state.players.length) {
+            state.game_over = true;
+            state.log.push('🏆 Tất cả người chơi đã về đích!');
+            break;
         }
-        // Hiển thị modal chọn mục tiêu
-        showTargetModal(targets, (targetId) => {
-            socket.emit('use_item', {
-                room_code: roomCode,
-                player_id: playerId,
-                item_type: itemType,
-                target_id: targetId
-            });
-        });
+    }
+    if (state.game_over) {
+        state.winner_id = state.players.find(p => p.finished)?.id || state.players[0].id;
+    }
+}
+
+// ===== USE ITEM =====
+function handleUseItem(itemType) {
+    if (!myPlayer || state.game_over || state.pending_shop_tile) return;
+    const player = myPlayer;
+    if (!player.items.includes(itemType)) return;
+    
+    if (itemType === 'XUC_XAC_X2') {
+        // Tung 2 lần lấy kết quả cao hơn
+        const r1 = rollDice();
+        const r2 = rollDice();
+        const result = Math.max(r1, r2);
+        state.log.push(`🎲 ${player.name} dùng Xúc Xắc X2: ${r1} và ${r2} → lấy ${result}`);
+        diceResult = result;
+        animateDice(result);
+        movePlayer(player, result);
+        player.items = player.items.filter(i => i !== itemType);
         return;
     }
     
-    // Kính Áp Tròng cần chọn +1/-1
+    if (itemType === 'LA_CHAN') {
+        player.statuses.push({ kind: 'shield', value: 1 });
+        state.log.push(`🛡️ ${player.name} kích hoạt Lá Chắn`);
+        player.items = player.items.filter(i => i !== itemType);
+        renderGame();
+        return;
+    }
+    
+    if (itemType === 'DAO_GAM') {
+        // Tìm mục tiêu gần nhất
+        let target = null;
+        let minDist = Infinity;
+        for (let p of state.players) {
+            if (p.id !== player.id && !p.finished && !p.offline) {
+                const dist = Math.abs(p.position - player.position);
+                if (dist <= 3 && dist < minDist) {
+                    minDist = dist;
+                    target = p;
+                }
+            }
+        }
+        if (target) {
+            target.position = Math.max(1, target.position - 4);
+            state.log.push(`🔪 ${player.name} đá ${target.name} lùi 4 ô`);
+        } else {
+            state.log.push(`❌ Không có mục tiêu trong bán kính 3 ô`);
+        }
+        player.items = player.items.filter(i => i !== itemType);
+        renderGame();
+        return;
+    }
+    
+    if (itemType === 'BUA_HO_MENH') {
+        player.statuses.push({ kind: 'extra_turn', value: 1 });
+        state.log.push(`🪆 ${player.name} nhận thêm 1 lượt từ Bùa Hộ Mệnh`);
+        player.items = player.items.filter(i => i !== itemType);
+        renderGame();
+        return;
+    }
+    
     if (itemType === 'KINH_AP_TRONG') {
-        showDeltaModal((delta) => {
-            socket.emit('use_item', {
-                room_code: roomCode,
-                player_id: playerId,
-                item_type: itemType,
-                delta: delta
-            });
-        });
+        const delta = Math.random() > 0.5 ? 1 : -1;
+        player.statuses.push({ kind: 'lens', value: delta });
+        state.log.push(`👁️ ${player.name} điều chỉnh xúc xắc ${delta > 0 ? '+' : ''}${delta}`);
+        player.items = player.items.filter(i => i !== itemType);
+        renderGame();
         return;
     }
-    
-    // Các item khác
-    socket.emit('use_item', {
-        room_code: roomCode,
-        player_id: playerId,
-        item_type: itemType
-    });
 }
 
 // ===== SHOP =====
@@ -501,11 +618,13 @@ function renderShopModal() {
         btn.textContent = 'Mua';
         btn.disabled = !canBuy;
         btn.addEventListener('click', () => {
-            socket.emit('buy_item', {
-                room_code: roomCode,
-                player_id: playerId,
-                item_type: key
-            });
+            if (myPlayer.gold >= info.price && stock > 0) {
+                myPlayer.gold -= info.price;
+                state.item_stock[key]--;
+                myPlayer.items.push(key);
+                state.log.push(`🛒 ${myPlayer.name} mua ${info.emoji} ${info.name}`);
+                renderGame();
+            }
         });
         div.appendChild(btn);
         wrap.appendChild(div);
@@ -513,54 +632,11 @@ function renderShopModal() {
 }
 
 $('btn-skip-shop').addEventListener('click', () => {
-    if (!socket || !roomCode || !playerId) return;
-    socket.emit('skip_shop', {
-        room_code: roomCode,
-        player_id: playerId
-    });
+    state.pending_shop_tile = false;
+    state.log.push(`🚶 ${myPlayer.name} bỏ qua cửa hàng`);
+    nextTurn();
+    renderGame();
 });
-
-// ===== PENDING ACTION =====
-function renderPendingModal() {
-    const modal = $('modal-pending');
-    if (!state.pending_action) {
-        modal.classList.add('hidden');
-        return;
-    }
-    modal.classList.remove('hidden');
-    
-    const pa = state.pending_action;
-    $('pending-title').textContent = `🃏 ${pa.card_name || 'Sự kiện'}`;
-    $('pending-desc').textContent = pa.card_desc || 'Chọn một lựa chọn:';
-    
-    const optWrap = $('pending-options');
-    optWrap.innerHTML = '';
-    
-    if (pa.await === 'confirm') {
-        const btn = document.createElement('button');
-        btn.textContent = '✅ Xác nhận';
-        btn.addEventListener('click', () => {
-            socket.emit('resolve_pending', {
-                room_code: roomCode,
-                player_id: playerId,
-                choice: { confirm: true }
-            });
-        });
-        optWrap.appendChild(btn);
-    } else {
-        // Các trường hợp khác có thể mở rộng
-        const btn = document.createElement('button');
-        btn.textContent = 'OK';
-        btn.addEventListener('click', () => {
-            socket.emit('resolve_pending', {
-                room_code: roomCode,
-                player_id: playerId,
-                choice: {}
-            });
-        });
-        optWrap.appendChild(btn);
-    }
-}
 
 // ===== END =====
 function renderEndModal() {
@@ -613,54 +689,12 @@ $('btn-popup-close').addEventListener('click', () => {
     $('modal-popup').classList.add('hidden');
 });
 
-// ===== TARGET MODAL =====
-function showTargetModal(targets, callback) {
-    const modal = $('modal-item-target');
-    $('item-target-title').textContent = '🎯 Chọn mục tiêu';
-    const opt = $('item-target-options');
-    opt.innerHTML = '';
-    targets.forEach(p => {
-        const btn = document.createElement('button');
-        btn.textContent = `${p.name} (Ô ${p.position})`;
-        btn.addEventListener('click', () => {
-            modal.classList.add('hidden');
-            callback(p.id);
-        });
-        opt.appendChild(btn);
-    });
-    modal.classList.remove('hidden');
-}
-
-// ===== DELTA MODAL =====
-function showDeltaModal(callback) {
-    const modal = $('modal-item-target');
-    $('item-target-title').textContent = '👁️ Chọn điều chỉnh';
-    const opt = $('item-target-options');
-    opt.innerHTML = '';
-    [1, -1].forEach(d => {
-        const btn = document.createElement('button');
-        btn.textContent = d > 0 ? '+1' : '-1';
-        btn.addEventListener('click', () => {
-            modal.classList.add('hidden');
-            callback(d);
-        });
-        opt.appendChild(btn);
-    });
-    modal.classList.remove('hidden');
-}
-
 // ===== HELPERS =====
 function getCharacterEmoji(char) {
     const map = { 'tho': '🐰', 'chim': '🐧', 'cao': '🦊', 'qua': '🐦‍⬛' };
     return map[char] || '🤡';
 }
 
-// ===== TIMER LOOP =====
-setInterval(() => {
-    if (state && isGameStarted) {
-        renderGame();
-    }
-}, 1000);
-
 // ===== INIT =====
-connectSocket();
+// Không cần gì thêm, chỉ cần DOM sẵn sàng
+console.log('🎮 Hành Tinh Xiếc - Offline mode đã sẵn sàng!');
