@@ -1,14 +1,9 @@
-# backend/models.py
-# -*- coding: utf-8 -*-
-"""
-Models - Định nghĩa dữ liệu
-"""
-
+# models.py
 from typing import List, Optional, Dict, Any
-from .constants import TileType, ItemType
+from constants import TileType, ItemType
 
 class Player:
-    def __init__(self, id: int, name: str, color: str, character: str,
+    def __init__(self, id: str, name: str, color: str, character: str,
                  position: int = 1, gold: int = 10, debt: int = 0,
                  items: List[str] = None, statuses: List[Dict] = None,
                  finished: bool = False, offline: bool = False):
@@ -23,7 +18,7 @@ class Player:
         self.statuses = statuses or []
         self.finished = finished
         self.offline = offline
-    
+
     def to_dict(self) -> Dict:
         return {
             'id': self.id,
@@ -44,7 +39,7 @@ class Tile:
         self.index = index
         self.type = type
         self.jump_target = jump_target
-    
+
     def to_dict(self) -> Dict:
         return {
             'index': self.index,
@@ -55,7 +50,7 @@ class Tile:
 class GameState:
     def __init__(self, players: List[Player], board: List[Tile],
                  current_player_index: int, turn_count: int,
-                 started: bool, game_over: bool, winner_id: Optional[int],
+                 started: bool, game_over: bool, winner_id: Optional[str],
                  started_at: float, pending_action: Optional[Dict],
                  pending_shop_tile: bool, item_stock: Dict[str, int],
                  log: List[str]):
@@ -71,7 +66,7 @@ class GameState:
         self.pending_shop_tile = pending_shop_tile
         self.item_stock = item_stock
         self.log = log
-    
+
     def to_dict(self) -> Dict:
         return {
             'players': [p.to_dict() for p in self.players],
