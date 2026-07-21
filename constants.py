@@ -1,4 +1,3 @@
-# backend/constants.py
 from enum import Enum
 
 class TileType(Enum):
@@ -9,7 +8,7 @@ class TileType(Enum):
     TIM = "TIM"
     CAM = "CAM"
     HONG = "HONG"
-    DICH = "DICH"   # ô về đích
+    DICH = "DICH"
 
 class ItemType(Enum):
     XUC_XAC_X2 = "XUC_XAC_X2"
@@ -18,7 +17,6 @@ class ItemType(Enum):
     BUA_HO_MENH = "BUA_HO_MENH"
     KINH_AP_TRONG = "KINH_AP_TRONG"
 
-# Thông tin vật phẩm dùng cho frontend
 ITEM_INFO = {
     "XUC_XAC_X2": {
         "name": "Xúc Xắc X2",
