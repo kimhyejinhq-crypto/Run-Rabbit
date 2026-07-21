@@ -2,223 +2,62 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>🚀 Hành Tinh Xiếc - Vũ Trụ Điên Loạn</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Space+Grotesk:wght@400;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/static/style.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🐇 Run Rabbit - Đua thú</title>
+    <link rel="stylesheet" href="style.css" />
+    <!-- Socket.IO client -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="script.js" defer></script>
 </head>
 <body>
-    <!-- ===== MÀN HÌNH LOBBY ===== -->
-    <div id="screen-lobby" class="screen">
-        <div class="nebula-bg"></div>
-        <div class="lobby-card">
-            <h1 class="title">🚀 Hành Tinh Xiếc</h1>
-            <p class="subtitle">— Cuộc đua vũ trụ điên loạn —</p>
-            
-            <div class="lobby-form">
-                <div class="form-group">
-                    <label>Tên phi hành gia</label>
-                    <input type="text" id="player-name" placeholder="Nhập tên của bạn..." value="Phi hành gia">
-                </div>
-                
-                <div class="form-group">
-                    <label>Chọn nhân vật</label>
-                    <div class="character-select" id="character-select">
-                        <div class="char-option" data-char="tho" data-color="#FF6B6B">
-                            <span class="char-emoji">🐰</span>
-                            <span class="char-name">Thỏ</span>
-                            <span class="char-desc">Tốc độ</span>
-                        </div>
-                        <div class="char-option" data-char="chim" data-color="#4ECDC4">
-                            <span class="char-emoji">🐧</span>
-                            <span class="char-name">Chim Cánh Cụt</span>
-                            <span class="char-desc">Bền bỉ</span>
-                        </div>
-                        <div class="char-option" data-char="cao" data-color="#FFD93D">
-                            <span class="char-emoji">🦊</span>
-                            <span class="char-name">Cáo</span>
-                            <span class="char-desc">Tinh ranh</span>
-                        </div>
-                        <div class="char-option" data-char="qua" data-color="#6C5CE7">
-                            <span class="char-emoji">🐦‍⬛</span>
-                            <span class="char-name">Quạ</span>
-                            <span class="char-desc">Thông thái</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label>Mã phòng</label>
-                    <div class="room-code-input">
-                        <input type="text" id="room-code" placeholder="Nhập mã phòng hoặc để trống tạo mới" maxlength="6">
-                        <button class="btn-random" id="btn-random-code">🎲</button>
-                    </div>
-                </div>
-                
-                <div class="lobby-actions">
-                    <button class="btn-primary" id="btn-create-room">🚀 Tạo phòng</button>
-                    <button class="btn-secondary" id="btn-join-room">🔭 Tham gia</button>
-                </div>
-                
-                <div id="lobby-error" class="error-text"></div>
-            </div>
-        </div>
-    </div>
+    <div id="app">
+        <header>
+            <h1>🐇 Run Rabbit</h1>
+            <p>Game đua thú – cùng bạn bè</p>
+        </header>
 
-    <!-- ===== MÀN HÌNH CHỜ ===== -->
-    <div id="screen-waiting" class="screen hidden">
-        <div class="nebula-bg"></div>
-        <div class="waiting-card">
-            <h2>🪐 Đang chờ người chơi...</h2>
-            <p class="room-display">Mã phòng: <strong id="waiting-room-code">------</strong></p>
-            <div class="player-list" id="waiting-players"></div>
-            <button class="btn-primary" id="btn-start-game">🚀 Bắt đầu</button>
-            <button class="btn-ghost" id="btn-leave">⬅️ Rời phòng</button>
-            <div id="waiting-error" class="error-text"></div>
-        </div>
-    </div>
-
-    <!-- ===== MÀN HÌNH GAME ===== -->
-    <div id="screen-game" class="screen hidden">
-        <div class="game-container">
-            <!-- TOPBAR -->
-            <div class="topbar">
-                <div class="topbar-left">
-                    <span class="stat-chip">🪙 <span id="stat-gold">0</span></span>
-                    <span class="stat-chip">⏱️ <span id="stat-timer">45:00</span></span>
-                    <span class="stat-chip">📋 Lượt <span id="stat-turn">0</span></span>
-                </div>
-                <div class="topbar-center">
-                    <span class="turn-indicator" id="turn-indicator">Đang chờ...</span>
-                </div>
-                <div class="topbar-right">
-                    <button class="btn-help" id="btn-help">❓</button>
+        <!-- Khu vực đăng nhập / tạo / tham gia phòng -->
+        <section id="login-section">
+            <div class="character-select">
+                <label>Chọn nhân vật của bạn:</label>
+                <div class="characters">
+                    <div class="char" data-name="Thỏ trắng">🐇 Thỏ</div>
+                    <div class="char" data-name="Sóc nâu">🐿️ Sóc</div>
+                    <div class="char" data-name="Mèo vàng">🐈 Mèo</div>
+                    <div class="char" data-name="Chó đốm">🐕 Chó</div>
                 </div>
             </div>
-
-            <!-- GAME LAYOUT -->
-            <div class="game-layout">
-                <!-- Board -->
-                <div class="board-wrapper">
-                    <div class="board-viewport" id="board-viewport">
-                        <div class="board" id="board"></div>
-                    </div>
-                    
-                    <!-- Dice -->
-                    <div class="dice-dock">
-                        <div class="dice-container">
-                            <div class="dice-face" id="dice-face">🎲</div>
-                            <div class="dice-value" id="dice-value"></div>
-                        </div>
-                        <button class="btn-roll" id="btn-roll">🎲 Tung xúc xắc</button>
-                        <div class="lucky-picker hidden" id="lucky-picker">
-                            <span>🍀 Chọn số:</span>
-                            <div class="lucky-numbers">
-                                <button data-n="1">1</button>
-                                <button data-n="2">2</button>
-                                <button data-n="3">3</button>
-                                <button data-n="4">4</button>
-                                <button data-n="5">5</button>
-                                <button data-n="6">6</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Players Panel -->
-                <div class="players-panel" id="players-panel">
-                    <h3>🎭 Phi hành gia</h3>
-                </div>
-
-                <!-- Log -->
-                <div class="log-panel">
-                    <h3>📜 Nhật ký</h3>
-                    <div class="log-list" id="log-list"></div>
+            <div class="room-actions">
+                <button id="create-room-btn">✨ Tạo phòng mới</button>
+                <div class="join-area">
+                    <input type="text" id="room-code-input" placeholder="Nhập mã phòng (VD: ABCD)" maxlength="4" />
+                    <button id="join-room-btn">🔗 Tham gia</button>
                 </div>
             </div>
-        </div>
-    </div>
+            <div id="error-msg" class="error"></div>
+        </section>
 
-    <!-- ===== MODALS ===== -->
-    
-    <!-- Cửa hàng -->
-    <div class="modal hidden" id="modal-shop">
-        <div class="modal-card shop-card">
-            <h2>🛒 Cửa hàng vũ trụ</h2>
-            <div class="shop-items" id="shop-items"></div>
-            <button class="btn-ghost" id="btn-skip-shop">🚶 Bỏ qua</button>
-        </div>
-    </div>
-
-    <!-- Pending Action -->
-    <div class="modal hidden" id="modal-pending">
-        <div class="modal-card">
-            <h2 id="pending-title">🃏 Lá bài</h2>
-            <p id="pending-desc" class="pending-desc"></p>
-            <div class="pending-options" id="pending-options"></div>
-        </div>
-    </div>
-
-    <!-- Popup thông báo -->
-    <div class="modal hidden" id="modal-popup">
-        <div class="modal-card popup-card">
-            <h2 id="popup-title">🎪 Thông báo</h2>
-            <p id="popup-desc"></p>
-            <button class="btn-primary" id="btn-popup-close">OK</button>
-        </div>
-    </div>
-
-    <!-- Hướng dẫn -->
-    <div class="modal hidden" id="modal-help">
-        <div class="modal-card help-card">
-            <h2>📖 Hướng dẫn vũ trụ</h2>
-            <div class="help-content">
-                <div class="help-section">
-                    <h3>🎯 Mục tiêu</h3>
-                    <p>Về đích ô số 100 trước các phi hành gia khác!</p>
-                </div>
-                <div class="help-section">
-                    <h3>🎲 Cách chơi</h3>
-                    <p>Nhấn "Tung xúc xắc" để di chuyển. Mỗi ô có hiệu ứng khác nhau:</p>
-                    <ul>
-                        <li><span class="tile-dot" style="background:#D9D2C4;"></span> Trống: Cướp 1 vàng nếu có người cùng ô</li>
-                        <li><span class="tile-dot" style="background:#FFD93D;"></span> Vàng: +5 vàng</li>
-                        <li><span class="tile-dot" style="background:#FF6B6B;"></span> Đỏ: -3 vàng hoặc lùi 3 ô</li>
-                        <li><span class="tile-dot" style="background:#4ECDC4;"></span> Xanh: Nhảy đến ô ngẫu nhiên</li>
-                        <li><span class="tile-dot" style="background:#6C5CE7;"></span> Tím: Rút bài Sự kiện</li>
-                        <li><span class="tile-dot" style="background:#FF9F43;"></span> Cam: Rút bài Bẫy</li>
-                        <li><span class="tile-dot" style="background:#FF6B81;"></span> Hồng: Cổng - trả 2 vàng</li>
-                    </ul>
-                </div>
-                <div class="help-section">
-                    <h3>🛒 Vật phẩm</h3>
-                    <p>Mua tại cửa hàng (ô 20, 50, 80) với vàng:</p>
-                    <ul>
-                        <li>🎲 Xúc Xắc X2 (7 vàng) - Tung 2 lần, lấy kết quả cao hơn</li>
-                        <li>🛡️ Lá Chắn (5 vàng) - Chặn 1 hiệu ứng xấu</li>
-                        <li>🔪 Dao Găm (8 vàng) - Đá lùi 4 ô người trong bán kính 3 ô</li>
-                        <li>🪆 Bùa Hộ Mệnh (10 vàng) - Được tung thêm 1 lượt</li>
-                        <li>👁️ Kính Áp Tròng (6 vàng) - Điều chỉnh +1/-1 điểm xúc xắc</li>
-                    </ul>
-                </div>
+        <!-- Khu vực phòng chơi (hiện khi đã vào phòng) -->
+        <section id="game-section" style="display:none;">
+            <div class="room-info">
+                <span>🏠 Phòng: <strong id="room-code-display"></strong></span>
+                <span>👥 Số người: <span id="player-count">0</span></span>
+                <button id="leave-room-btn">🚪 Rời phòng</button>
             </div>
-            <button class="btn-primary" id="btn-help-close">Đã hiểu!</button>
-        </div>
-    </div>
-
-    <!-- Kết thúc -->
-    <div class="modal hidden" id="modal-end">
-        <div class="modal-card end-card">
-            <h2 id="end-title">🏆 Kết thúc!</h2>
-            <div id="end-content">
-                <p id="end-desc"></p>
-                <div class="end-stats" id="end-stats"></div>
+            <div class="game-board">
+                <!-- Bàn cờ 30 ô, mỗi ô là 1 ô vuông -->
+                <div id="board"></div>
             </div>
-            <button class="btn-primary" id="btn-restart">🔄 Chơi lại</button>
-        </div>
+            <div class="players-status">
+                <h3>Danh sách người chơi</h3>
+                <ul id="players-list"></ul>
+            </div>
+            <div class="game-controls">
+                <button id="roll-btn" disabled>🎲 Tung xúc xắc</button>
+                <div id="dice-result"></div>
+                <div id="turn-indicator"></div>
+            </div>
+        </section>
     </div>
-
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="/static/scripts.js"></script>
 </body>
 </html>
