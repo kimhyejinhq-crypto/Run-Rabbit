@@ -1,7 +1,0 @@
-services:
-  - type: web
-    name: run-rabbit
-    runtime: python
-    plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn -k eventlet -w 1 backend.app:app
