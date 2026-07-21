@@ -1,46 +1,58 @@
-# -*- coding: utf-8 -*-
+# backend/constants.py
 from enum import Enum
 
 class TileType(Enum):
-    TRONG = "TRONG"         # xuất phát
-    DICH = "DICH"           # đích
-    VANG = "VANG"           # vàng
-    DO = "DO"               # đỏ
-    XANH = "XANH"           # xanh
-    TIM = "TIM"             # tím
-    CAM = "CAM"             # cam
-    HONG = "HONG"           # hồng
-    DEN = "DEN"             # đen (bẫy)
-    TRANG = "TRANG"         # trắng (cửa hàng)
+    TRONG = "TRONG"
+    VANG = "VANG"
+    DO = "DO"
+    XANH = "XANH"
+    TIM = "TIM"
+    CAM = "CAM"
+    HONG = "HONG"
+    DICH = "DICH"   # ô về đích
 
-# Số lượng ô mỗi loại trong túi 150 thẻ
-TILE_POOL_COUNTS = {
-    TileType.VANG: 30,
-    TileType.DO: 25,
-    TileType.XANH: 20,
-    TileType.TIM: 20,
-    TileType.CAM: 15,
-    TileType.HONG: 10,
-    TileType.DEN: 15,
-    TileType.TRANG: 10,
-    # TRONG và DICH không nằm trong túi, sẽ được đặt cố định
-}
+class ItemType(Enum):
+    XUC_XAC_X2 = "XUC_XAC_X2"
+    LA_CHAN = "LA_CHAN"
+    DAO_GAM = "DAO_GAM"
+    BUA_HO_MENH = "BUA_HO_MENH"
+    KINH_AP_TRONG = "KINH_AP_TRONG"
 
-TILES_TO_DRAW = 100
-BOARD_SIZE = 100
-START_TILE = 1
-FINISH_TILE = 100
-
-# Màu sắc hiển thị cho từng loại ô (cho frontend)
-TILE_COLORS = {
-    TileType.TRONG: "#4CAF50",  # xanh lá
-    TileType.DICH: "#FFD700",   # vàng
-    TileType.VANG: "#FFC107",
-    TileType.DO: "#F44336",
-    TileType.XANH: "#2196F3",
-    TileType.TIM: "#9C27B0",
-    TileType.CAM: "#FF9800",
-    TileType.HONG: "#E91E63",
-    TileType.DEN: "#212121",
-    TileType.TRANG: "#FFFFFF",
+# Thông tin vật phẩm dùng cho frontend
+ITEM_INFO = {
+    "XUC_XAC_X2": {
+        "name": "Xúc Xắc X2",
+        "emoji": "🎲",
+        "price": 7,
+        "desc": "Tung 2 lần, lấy kết quả cao hơn",
+        "max_stock": 3
+    },
+    "LA_CHAN": {
+        "name": "Lá Chắn",
+        "emoji": "🛡️",
+        "price": 5,
+        "desc": "Chặn 1 hiệu ứng xấu",
+        "max_stock": 3
+    },
+    "DAO_GAM": {
+        "name": "Dao Găm",
+        "emoji": "🔪",
+        "price": 8,
+        "desc": "Đá lùi 4 ô người trong bán kính 3 ô",
+        "max_stock": 2
+    },
+    "BUA_HO_MENH": {
+        "name": "Bùa Hộ Mệnh",
+        "emoji": "🪆",
+        "price": 10,
+        "desc": "Được tung thêm 1 lượt",
+        "max_stock": 2
+    },
+    "KINH_AP_TRONG": {
+        "name": "Kính Áp Tròng",
+        "emoji": "👁️",
+        "price": 6,
+        "desc": "Điều chỉnh +1/-1 điểm xúc xắc",
+        "max_stock": 3
+    }
 }
