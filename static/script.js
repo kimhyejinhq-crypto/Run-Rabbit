@@ -121,4 +121,4 @@ function updateBoard(players) {
             }
         }
     });
-}
+}[reference:2]
