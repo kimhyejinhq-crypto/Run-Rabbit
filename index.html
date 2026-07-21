@@ -4,17 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🐇 Run Rabbit</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <script src="script.js" defer></script>
+    <script src="{{ url_for('static', filename='script.js') }}" defer></script>
 </head>
 <body>
     <div id="app">
-        <header>
-            <h1>🐇 Run Rabbit</h1>
-            <p>🔗 Một link – cùng chơi</p>
-        </header>
+        <header><h1>🐇 Run Rabbit</h1><p>Multiplayer – chọn nhân vật, tạo phòng, đua nhau về đích</p></header>
 
+        <!-- Màn hình chọn nhân vật và phòng -->
         <section id="login-section">
             <div class="character-select">
                 <label>Chọn nhân vật:</label>
@@ -25,14 +23,22 @@
                     <div class="char" data-name="Quạ">🐦‍⬛ Quạ</div>
                 </div>
             </div>
-            <button id="join-btn" disabled>🎮 Vào chơi</button>
+            <div class="room-actions">
+                <button id="create-room-btn">✨ Tạo phòng mới</button>
+                <div class="join-area">
+                    <input type="text" id="room-code-input" placeholder="Mã phòng (VD: ABCD)" maxlength="4">
+                    <button id="join-room-btn">🔗 Tham gia</button>
+                </div>
+            </div>
             <div id="error-msg" class="error"></div>
         </section>
 
+        <!-- Khu vực game -->
         <section id="game-section" style="display:none;">
             <div class="room-info">
-                <span>🏠 Phòng: <strong>RABBIT</strong></span>
+                <span>🏠 Phòng: <strong id="room-code-display"></strong></span>
                 <span>👥 Số người: <span id="player-count">0</span></span>
+                <button id="leave-room-btn">🚪 Rời phòng</button>
             </div>
             <div id="board"></div>
             <div class="players-status">
@@ -40,8 +46,9 @@
                 <ul id="players-list"></ul>
             </div>
             <div class="game-controls">
-                <button id="roll-btn">🎲 Tung xúc xắc</button>
+                <button id="roll-btn" disabled>🎲 Tung xúc xắc</button>
                 <div id="dice-result"></div>
+                <div id="turn-indicator">⏳ Đang chờ...</div>
             </div>
         </section>
     </div>
