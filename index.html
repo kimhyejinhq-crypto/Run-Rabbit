@@ -12,13 +12,12 @@
     <div id="app">
         <header>
             <h1>🐇 Run Rabbit</h1>
-            <p>🔗 Một link – chọn nhân vật và vào chơi</p>
+            <p>🔗 Một link – cùng chơi</p>
         </header>
 
-        <!-- Màn hình chọn nhân vật -->
         <section id="login-section">
             <div class="character-select">
-                <label>Chọn nhân vật của bạn:</label>
+                <label>Chọn nhân vật:</label>
                 <div class="characters">
                     <div class="char" data-name="Thỏ">🐇 Thỏ</div>
                     <div class="char" data-name="Chim cánh cụt">🐧 Chim cánh cụt</div>
@@ -26,19 +25,16 @@
                     <div class="char" data-name="Quạ">🐦‍⬛ Quạ</div>
                 </div>
             </div>
-            <button id="join-btn" disabled>🎮 Vào phòng chơi</button>
+            <button id="join-btn" disabled>🎮 Vào chơi</button>
             <div id="error-msg" class="error"></div>
         </section>
 
-        <!-- Màn hình game -->
         <section id="game-section" style="display:none;">
             <div class="room-info">
                 <span>🏠 Phòng: <strong>RABBIT</strong></span>
                 <span>👥 Số người: <span id="player-count">0</span></span>
             </div>
-            <div class="game-board">
-                <div id="board"></div>
-            </div>
+            <div id="board"></div>
             <div class="players-status">
                 <h3>Danh sách người chơi</h3>
                 <ul id="players-list"></ul>
@@ -46,9 +42,8 @@
             <div class="game-controls">
                 <button id="roll-btn">🎲 Tung xúc xắc</button>
                 <div id="dice-result"></div>
-                <div id="turn-indicator">✅ Ai cũng có thể tung (không lượt)</div>
             </div>
         </section>
     </div>
 </body>
-</html>[reference:1]
+</html>
