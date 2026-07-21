@@ -10,15 +10,15 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 # Phòng cố định
 ROOM = "RABBIT"
 
-# Lưu trữ
-players = {}  # sid -> {'name': ..., 'position': 0}
+# Lưu trữ players: sid -> {'name': ..., 'position': 0}
+players = {}
 
 @app.route('/')
 def index():
     # Trả về file index.html từ thư mục hiện tại
     return send_from_directory('.', 'index.html')
 
-@app.route('/<path:path>')
+@app.route('/')
 def static_files(path):
     return send_from_directory('.', path)
 
@@ -38,7 +38,7 @@ def handle_disconnect():
     sid = request.sid
     if sid in players:
         del players[sid]
-        emit('update_players', get_players_info(), room=ROOM)
+    emit('update_players', get_players_info(), room=ROOM)
     print(f'Disconnected: {sid}')
 
 @socketio.on('set_name')
@@ -69,8 +69,8 @@ def handle_roll_dice():
         emit('game_over', {'winner': players[sid]['name']}, room=ROOM)
 
 def get_players_info():
-    return [{'id': sid, 'name': p['name'], 'position': p['position']} 
+    return [{'id': sid, 'name': p['name'], 'position': p['position']}
             for sid, p in players.items() if p['name'] is not None]
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True)[reference:0]
