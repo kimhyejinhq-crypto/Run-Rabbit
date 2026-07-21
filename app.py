@@ -1,30 +1,28 @@
-# backend/app.py
 from flask import Flask, send_from_directory, request
-from flask_socketio import SocketIO, emit, join_room, leave_room
+from flask_socketio import SocketIO, emit, join_room
 from flask_cors import CORS
 import eventlet
 import uuid
 import random
-from .models import Player
-from .game import Game, create_board
-from .constants import ITEM_INFO
+from models import Player
+from game import Game
+from constants import ITEM_INFO
 
-app = Flask(__name__, static_folder='../static', static_url_path='/static')
+app = Flask(__name__, static_folder='static', static_url_path='/static')
 app.config['SECRET_KEY'] = 'secret!'
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 games = {}
-
 COLORS = ['Đỏ', 'Xanh', 'Vàng', 'Tím']
 
 @app.route('/')
 def index():
-    return send_from_directory('../static', 'index.html')
+    return send_from_directory('static', 'index.html')
 
 @app.route('/<path:path>')
 def static_files(path):
-    return send_from_directory('../static', path)
+    return send_from_directory('static', path)
 
 @socketio.on('connect')
 def handle_connect():
@@ -125,25 +123,19 @@ def handle_roll_dice(data):
     current = game.players[game.current_player_index]
     if current.id != player_id:
         return
-    # Kiểm tra trạng thái pending hoặc shop
     if game.pending_action or game.pending_shop_tile:
         return
     result = game.roll_dice(player_id, chosen_number)
     if result == 0:
         return
-    # Di chuyển
     game.move_player(player_id, result)
-    # Kiểm tra nếu cửa hàng
     tile = game.board[current.position - 1]
     if tile.type.value == "VANG" and not game.game_over:
         game.pending_shop_tile = True
-        # Cập nhật state với shop
         emit('state_update', {'state': game.get_state().to_dict()}, room=room_code)
         return
-    # Kết thúc lượt (hoặc game over)
     if not game.game_over:
         game.next_turn()
-    # Cập nhật trạng thái
     emit('dice_result', {'dice': result, 'state': game.get_state().to_dict()}, room=room_code)
     emit('state_update', {'state': game.get_state().to_dict()}, room=room_code)
 
@@ -157,7 +149,6 @@ def handle_use_item(data):
     if room_code not in games:
         return
     game = games[room_code]
-    # Kiểm tra lượt
     current = game.players[game.current_player_index]
     if current.id != player_id:
         return
@@ -165,7 +156,6 @@ def handle_use_item(data):
         return
     success = game.use_item(player_id, item_type, target_id, delta)
     if success:
-        # Nếu không có pending action thì chuyển lượt
         if not game.pending_action and not game.game_over:
             game.next_turn()
         emit('state_update', {'state': game.get_state().to_dict()}, room=room_code)
@@ -181,7 +171,6 @@ def handle_buy_item(data):
     if game.pending_shop_tile:
         success = game.buy_item(player_id, item_type)
         if success:
-            # Sau khi mua, vẫn ở cửa hàng (cho phép mua tiếp) hoặc có thể chọn skip
             emit('state_update', {'state': game.get_state().to_dict()}, room=room_code)
         else:
             emit('error', {'message': 'Không thể mua vật phẩm'})
@@ -208,7 +197,6 @@ def handle_resolve_pending(data):
         game.resolve_pending(player_id, choice)
         emit('state_update', {'state': game.get_state().to_dict()}, room=room_code)
 
-# Thêm sự kiện để client có thể lấy trạng thái khi refresh
 @socketio.on('get_state')
 def handle_get_state(data):
     room_code = data.get('room_code')
