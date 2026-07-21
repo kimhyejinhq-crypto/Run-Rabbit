@@ -1,11 +1,10 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>🐇 Run Rabbit - Đua thú</title>
-    <link rel="stylesheet" href="style.css" />
-    <!-- Socket.IO client -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐇 Run Rabbit</title>
+    <link rel="stylesheet" href="style.css">
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="script.js" defer></script>
 </head>
@@ -13,39 +12,31 @@
     <div id="app">
         <header>
             <h1>🐇 Run Rabbit</h1>
-            <p>Game đua thú – cùng bạn bè</p>
+            <p>🔗 Một link – chọn nhân vật và vào chơi</p>
         </header>
 
-        <!-- Khu vực đăng nhập / tạo / tham gia phòng -->
+        <!-- Màn hình chọn nhân vật -->
         <section id="login-section">
             <div class="character-select">
                 <label>Chọn nhân vật của bạn:</label>
                 <div class="characters">
-                    <div class="char" data-name="Thỏ trắng">🐇 Thỏ</div>
-                    <div class="char" data-name="Sóc nâu">🐿️ Sóc</div>
-                    <div class="char" data-name="Mèo vàng">🐈 Mèo</div>
-                    <div class="char" data-name="Chó đốm">🐕 Chó</div>
+                    <div class="char" data-name="Thỏ">🐇 Thỏ</div>
+                    <div class="char" data-name="Chim cánh cụt">🐧 Chim cánh cụt</div>
+                    <div class="char" data-name="Cáo">🦊 Cáo</div>
+                    <div class="char" data-name="Quạ">🐦‍⬛ Quạ</div>
                 </div>
             </div>
-            <div class="room-actions">
-                <button id="create-room-btn">✨ Tạo phòng mới</button>
-                <div class="join-area">
-                    <input type="text" id="room-code-input" placeholder="Nhập mã phòng (VD: ABCD)" maxlength="4" />
-                    <button id="join-room-btn">🔗 Tham gia</button>
-                </div>
-            </div>
+            <button id="join-btn" disabled>🎮 Vào phòng chơi</button>
             <div id="error-msg" class="error"></div>
         </section>
 
-        <!-- Khu vực phòng chơi (hiện khi đã vào phòng) -->
+        <!-- Màn hình game -->
         <section id="game-section" style="display:none;">
             <div class="room-info">
-                <span>🏠 Phòng: <strong id="room-code-display"></strong></span>
+                <span>🏠 Phòng: <strong>RABBIT</strong></span>
                 <span>👥 Số người: <span id="player-count">0</span></span>
-                <button id="leave-room-btn">🚪 Rời phòng</button>
             </div>
             <div class="game-board">
-                <!-- Bàn cờ 30 ô, mỗi ô là 1 ô vuông -->
                 <div id="board"></div>
             </div>
             <div class="players-status">
@@ -53,9 +44,9 @@
                 <ul id="players-list"></ul>
             </div>
             <div class="game-controls">
-                <button id="roll-btn" disabled>🎲 Tung xúc xắc</button>
+                <button id="roll-btn">🎲 Tung xúc xắc</button>
                 <div id="dice-result"></div>
-                <div id="turn-indicator"></div>
+                <div id="turn-indicator">✅ Ai cũng có thể tung (không lượt)</div>
             </div>
         </section>
     </div>
