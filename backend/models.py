@@ -1,5 +1,6 @@
 # backend/models.py
 # -*- coding: utf-8 -*-
+
 """
 Models - Định nghĩa dữ liệu
 """
